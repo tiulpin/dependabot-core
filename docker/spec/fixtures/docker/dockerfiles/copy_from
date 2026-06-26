@@ -1,0 +1,17 @@
+FROM node:10.9.2-alpine AS build
+
+RUN apk add --no-cache git
+
+WORKDIR /application
+
+COPY package.json yarn.lock ./
+
+RUN yarn
+
+COPY . .
+
+FROM node:10.9.2-alpine
+
+COPY --from=build /application/ /dependabot/
+
+COPY --from=nginx:1.14.2 /etc/nginx /etc/nginx

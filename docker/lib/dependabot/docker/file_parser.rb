@@ -11,6 +11,8 @@ module Dependabot
 
       YAML_REGEXP = /^[^\.].*\.ya?ml$/i
       FROM = /FROM/i
+      COPY = /COPY/i
+      FROM_FLAG = /--from\=/
       PLATFORM = /--platform\=(?<platform>\S+)/
       TAG_NO_PREFIX = /(?<tag>[\w][\w.-]{0,127})/
       TAG = /:#{TAG_NO_PREFIX}/
@@ -19,6 +21,13 @@ module Dependabot
       FROM_LINE =
         %r{^#{FROM}\s+(#{PLATFORM}\s+)?(#{REGISTRY}/)?
           #{IMAGE}#{TAG}?(?:@sha256:#{DIGEST})?#{NAME}?}x
+
+      # `COPY --from=<image>` pulls files from an external image in multi-stage
+      # builds. References to named build stages (which have no tag or digest)
+      # are ignored, the same way bare `FROM <stage>` lines are.
+      COPY_FROM_LINE =
+        %r{^#{COPY}\s+#{FROM_FLAG}(#{REGISTRY}/)?
+          #{IMAGE}#{TAG}?(?:@sha256:#{DIGEST})?}x
 
       IMAGE_SPEC = %r{^(#{REGISTRY}/)?#{IMAGE}#{TAG}?(?:@sha256:#{DIGEST})?#{NAME}?}x
       TAG_WITH_DIGEST = /^#{TAG_NO_PREFIX}(?:@sha256:#{DIGEST})?/x
@@ -40,15 +49,15 @@ module Dependabot
 
         dockerfiles.each do |dockerfile|
           T.must(dockerfile.content).each_line do |line|
-            next unless FROM_LINE.match?(line)
+            parsed_line = parse_image_line(line)
+            next unless parsed_line
 
-            parsed_from_line = T.must(FROM_LINE.match(line)).named_captures
-            parsed_from_line["registry"] = nil if parsed_from_line["registry"] == "docker.io"
+            parsed_line["registry"] = nil if parsed_line["registry"] == "docker.io"
 
-            version = version_from(parsed_from_line)
+            version = version_from(parsed_line)
             next unless version
 
-            dependency_set << build_dependency(dockerfile, parsed_from_line, version)
+            dependency_set << build_dependency(dockerfile, parsed_line, version)
           end
         end
 
@@ -60,6 +69,12 @@ module Dependabot
       end
 
       private
+
+      sig { params(line: String).returns(T.nilable(T::Hash[String, T.nilable(String)])) }
+      def parse_image_line(line)
+        match = FROM_LINE.match(line) || COPY_FROM_LINE.match(line)
+        match&.named_captures
+      end
 
       sig { override.returns(String) }
       def package_manager

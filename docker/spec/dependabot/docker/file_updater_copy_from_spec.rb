@@ -6,9 +6,6 @@ require "dependabot/dependency"
 require "dependabot/dependency_file"
 require "dependabot/docker/file_updater"
 
-# Multi-stage builds can pull files from an external image via
-# `COPY --from=<image>:<tag>`. Updating that image should rewrite the
-# `COPY --from` line while leaving named build stages untouched.
 RSpec.describe Dependabot::Docker::FileUpdater do
   subject(:updated_dockerfile) do
     described_class.new(

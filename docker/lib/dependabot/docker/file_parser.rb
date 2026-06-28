@@ -22,9 +22,6 @@ module Dependabot
         %r{^#{FROM}\s+(#{PLATFORM}\s+)?(#{REGISTRY}/)?
           #{IMAGE}#{TAG}?(?:@sha256:#{DIGEST})?#{NAME}?}x
 
-      # `COPY --from=<image>` pulls files from an external image in multi-stage
-      # builds. References to named build stages (which have no tag or digest)
-      # are ignored, the same way bare `FROM <stage>` lines are.
       COPY_FROM_LINE =
         %r{^#{COPY}\s+#{FROM_FLAG}(#{REGISTRY}/)?
           #{IMAGE}#{TAG}?(?:@sha256:#{DIGEST})?}x

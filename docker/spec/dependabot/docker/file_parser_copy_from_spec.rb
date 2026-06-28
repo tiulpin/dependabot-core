@@ -6,9 +6,6 @@ require "dependabot/dependency_file"
 require "dependabot/source"
 require "dependabot/docker/file_parser"
 
-# Multi-stage builds can pull files from an external image via
-# `COPY --from=<image>:<tag>`. These should be parsed as dependencies, while
-# references to named build stages (e.g. `COPY --from=builder`) are ignored.
 RSpec.describe Dependabot::Docker::FileParser do
   subject(:dependencies) do
     described_class.new(dependency_files: [dockerfile], source: source).parse
@@ -24,12 +21,8 @@ RSpec.describe Dependabot::Docker::FileParser do
     Dependabot::Source.new(provider: "github", repo: "gocardless/bump", directory: "/")
   end
 
-  it "parses both the FROM image and the COPY --from image" do
+  it "parses the FROM image and the COPY --from image, ignoring named stages" do
     expect(dependencies.map(&:name)).to contain_exactly("node", "nginx")
-  end
-
-  it "ignores references to named build stages" do
-    expect(dependencies.map(&:name)).not_to include("build")
   end
 
   describe "the COPY --from dependency" do

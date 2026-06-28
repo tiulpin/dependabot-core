@@ -13,7 +13,6 @@ module Dependabot
 
       YAML_REGEXP = /^[^\.].*\.ya?ml$/i
       FROM_REGEX = /FROM(\s+--platform\=\S+)?/i
-      # `COPY --from=<image>` references an external image in multi-stage builds.
       COPY_FROM_REGEX = /COPY\s+--from\=/i
 
       sig { override.returns(String) }
